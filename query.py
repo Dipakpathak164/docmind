@@ -30,7 +30,7 @@ def answer(question: str) -> dict:
         )
     elif config.GEMINI_API_KEY:
         Settings.embed_model = GeminiEmbedding(
-            model_name="models/embedding-001",
+            model_name="models/gemini-embedding-001",
             api_key=config.GEMINI_API_KEY
         )
 
@@ -41,9 +41,10 @@ def answer(question: str) -> dict:
         )
     elif config.GEMINI_API_KEY:
         Settings.llm = Gemini(
-            model="models/gemini-pro",
+            model="models/gemini-2.5-flash",
             api_key=config.GEMINI_API_KEY
         )
+
 
 
     

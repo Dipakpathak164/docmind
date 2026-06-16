@@ -59,9 +59,10 @@ def ingest_source(source: str) -> tuple[int, int]:
         )
     elif config.GEMINI_API_KEY:
         Settings.embed_model = GeminiEmbedding(
-            model_name="models/embedding-001",
+            model_name="models/gemini-embedding-001",
             api_key=config.GEMINI_API_KEY
         )
+
 
 
     
