@@ -141,10 +141,11 @@ with st.sidebar:
                     
     st.markdown("---")
     st.markdown("### Settings")
-    if config.GEMINI_API_KEY and (not config.OPENAI_API_KEY or config.OPENAI_API_KEY == "mock-openai-key"):
-        active_backend = "Google Gemini (Free)"
-    else:
-        active_backend = "OpenAI & Anthropic (Paid)"
+    # Determine active backend components
+    embed_provider = "OpenAI" if config.OPENAI_API_KEY else "Google Gemini"
+    llm_provider = "Anthropic (Claude)" if config.ANTHROPIC_API_KEY else "Google Gemini"
+    active_backend = f"{embed_provider} (Embeddings) + {llm_provider} (LLM)"
+
     st.info(
         f"**Active Backend**: `{active_backend}`\n\n"
         f"**Collection**: `{config.COLLECTION_NAME}`\n"

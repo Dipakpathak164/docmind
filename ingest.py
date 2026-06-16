@@ -52,16 +52,17 @@ def load_url(url: str) -> list[Document]:
 def ingest_source(source: str) -> tuple[int, int]:
     """Ingest documents from a file, directory, or URL, chunk them, embed, and store in Chroma."""
     # Configure LlamaIndex Embeddings and Node Parser
-    if config.GEMINI_API_KEY and (not config.OPENAI_API_KEY or config.OPENAI_API_KEY == "mock-openai-key"):
-        Settings.embed_model = GeminiEmbedding(
-            model_name="models/embedding-001",
-            api_key=config.GEMINI_API_KEY
-        )
-    else:
+    if config.OPENAI_API_KEY:
         Settings.embed_model = OpenAIEmbedding(
             model="text-embedding-3-small",
             api_key=config.OPENAI_API_KEY
         )
+    elif config.GEMINI_API_KEY:
+        Settings.embed_model = GeminiEmbedding(
+            model_name="models/embedding-001",
+            api_key=config.GEMINI_API_KEY
+        )
+
 
     
     # Check if source is a URL or local path

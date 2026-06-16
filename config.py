@@ -17,23 +17,29 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
 
+# Treat placeholder values from the .env file as None
+if OPENAI_API_KEY and ("your_openai_api_key" in OPENAI_API_KEY or OPENAI_API_KEY == "mock-openai-key" and not IS_TESTING):
+    OPENAI_API_KEY = None
+if ANTHROPIC_API_KEY and ("your_anthropic_api_key" in ANTHROPIC_API_KEY or ANTHROPIC_API_KEY == "mock-anthropic-key" and not IS_TESTING):
+    ANTHROPIC_API_KEY = None
+if GEMINI_API_KEY and ("your_gemini_api_key" in GEMINI_API_KEY or GEMINI_API_KEY == "mock-gemini-key" and not IS_TESTING):
+    GEMINI_API_KEY = None
+
 # Check required API keys unless we are executing unit tests
 missing_keys = []
-if not GEMINI_API_KEY:
-    if not OPENAI_API_KEY or not ANTHROPIC_API_KEY:
-        if not OPENAI_API_KEY:
-            missing_keys.append("OPENAI_API_KEY")
-        if not ANTHROPIC_API_KEY:
-            missing_keys.append("ANTHROPIC_API_KEY")
-        missing_keys.append("GEMINI_API_KEY")
+# We need at least one embedding key and one LLM key
+has_embedding_key = bool(OPENAI_API_KEY or GEMINI_API_KEY)
+has_llm_key = bool(ANTHROPIC_API_KEY or GEMINI_API_KEY)
 
-if missing_keys and not IS_TESTING:
+if (not has_embedding_key or not has_llm_key) and not IS_TESTING:
     raise ValueError(
-        "Missing required environment variables. To run DocMind, you must set either:\n"
-        "1. GEMINI_API_KEY (for the free Google Gemini tier)\n"
+        "Insufficient API keys provided. To run DocMind, please configure either:\n"
+        "1. GEMINI_API_KEY (for free embeddings & LLM)\n"
         "OR\n"
-        "2. BOTH OPENAI_API_KEY and ANTHROPIC_API_KEY (for the OpenAI/Claude tier).\n"
-        "Please update your '.env' file."
+        "2. OPENAI_API_KEY (for embeddings) and GEMINI_API_KEY (for free LLM)\n"
+        "OR\n"
+        "3. OPENAI_API_KEY (for embeddings) and ANTHROPIC_API_KEY (for Claude LLM).\n"
+        "Please edit your '.env' file."
     )
 
 # Assign dummy keys in testing environment if not present
@@ -41,6 +47,7 @@ if IS_TESTING:
     OPENAI_API_KEY = OPENAI_API_KEY or "mock-openai-key"
     ANTHROPIC_API_KEY = ANTHROPIC_API_KEY or "mock-anthropic-key"
     GEMINI_API_KEY = GEMINI_API_KEY or "mock-gemini-key"
+
 
 
 # Vector DB Configuration
