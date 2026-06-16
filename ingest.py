@@ -10,6 +10,7 @@ from pathlib import Path
 from llama_index.core import SimpleDirectoryReader, Document, StorageContext, VectorStoreIndex, Settings
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.embeddings.openai import OpenAIEmbedding
+from llama_index.embeddings.gemini import GeminiEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
 import chromadb
 
@@ -51,10 +52,17 @@ def load_url(url: str) -> list[Document]:
 def ingest_source(source: str) -> tuple[int, int]:
     """Ingest documents from a file, directory, or URL, chunk them, embed, and store in Chroma."""
     # Configure LlamaIndex Embeddings and Node Parser
-    Settings.embed_model = OpenAIEmbedding(
-        model="text-embedding-3-small",
-        api_key=config.OPENAI_API_KEY
-    )
+    if config.GEMINI_API_KEY and (not config.OPENAI_API_KEY or config.OPENAI_API_KEY == "mock-openai-key"):
+        Settings.embed_model = GeminiEmbedding(
+            model_name="models/embedding-001",
+            api_key=config.GEMINI_API_KEY
+        )
+    else:
+        Settings.embed_model = OpenAIEmbedding(
+            model="text-embedding-3-small",
+            api_key=config.OPENAI_API_KEY
+        )
+
     
     # Check if source is a URL or local path
     is_url = source.startswith(("http://", "https://"))

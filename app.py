@@ -141,12 +141,18 @@ with st.sidebar:
                     
     st.markdown("---")
     st.markdown("### Settings")
+    if config.GEMINI_API_KEY and (not config.OPENAI_API_KEY or config.OPENAI_API_KEY == "mock-openai-key"):
+        active_backend = "Google Gemini (Free)"
+    else:
+        active_backend = "OpenAI & Anthropic (Paid)"
     st.info(
+        f"**Active Backend**: `{active_backend}`\n\n"
         f"**Collection**: `{config.COLLECTION_NAME}`\n"
         f"**Chunk Size**: `{config.CHUNK_SIZE}`\n"
         f"**Overlap**: `{config.CHUNK_OVERLAP}`\n"
         f"**Min Similarity**: `{config.SIMILARITY_CUTOFF}`"
     )
+
 
 # Main Area UI
 st.markdown('<div class="app-header">DocMind</div>', unsafe_allow_html=True)

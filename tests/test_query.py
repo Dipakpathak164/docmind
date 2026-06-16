@@ -16,13 +16,16 @@ class MockNode:
         self.metadata = metadata
 
 @patch("query.OpenAIEmbedding")
+@patch("query.GeminiEmbedding")
 @patch("query.Anthropic")
+@patch("query.Gemini")
 @patch("query.chromadb.PersistentClient")
 @patch("query.VectorStoreIndex")
 @patch("query.get_response_synthesizer")
 def test_answer_success(
-    mock_synth_cls, mock_index_cls, mock_chroma_cls, mock_anthropic, mock_openai
+    mock_synth_cls, mock_index_cls, mock_chroma_cls, mock_gemini_cls, mock_anthropic_cls, mock_gemini_embed_cls, mock_openai_embed_cls
 ):
+
     """Test standard query success: returns LLM answer, parses citations, filters out low scores."""
     # Mock Chroma Client and Collection
     mock_client = MagicMock()
@@ -64,13 +67,16 @@ def test_answer_success(
     assert res["sources"][1]["score"] == 0.75
 
 @patch("query.OpenAIEmbedding")
+@patch("query.GeminiEmbedding")
 @patch("query.Anthropic")
+@patch("query.Gemini")
 @patch("query.chromadb.PersistentClient")
 @patch("query.VectorStoreIndex")
 @patch("query.get_response_synthesizer")
 def test_answer_no_relevant_info(
-    mock_synth_cls, mock_index_cls, mock_chroma_cls, mock_anthropic, mock_openai
+    mock_synth_cls, mock_index_cls, mock_chroma_cls, mock_gemini_cls, mock_anthropic_cls, mock_gemini_embed_cls, mock_openai_embed_cls
 ):
+
     """Test query fallback when all retrieved nodes fall below similarity threshold."""
     # Mock Chroma Client and Collection
     mock_client = MagicMock()

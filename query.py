@@ -2,8 +2,11 @@ import chromadb
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core import StorageContext, VectorStoreIndex, Settings
 from llama_index.embeddings.openai import OpenAIEmbedding
+from llama_index.embeddings.gemini import GeminiEmbedding
 from llama_index.llms.anthropic import Anthropic
+from llama_index.llms.gemini import Gemini
 from llama_index.core.response_synthesizers import get_response_synthesizer
+
 import config
 
 def answer(question: str) -> dict:
@@ -20,14 +23,25 @@ def answer(question: str) -> dict:
             - "has_answer" (bool): True if chunks above similarity cutoff exist, else False
     """
     # Configure LlamaIndex LLM and Embeddings globally for query process
-    Settings.embed_model = OpenAIEmbedding(
-        model="text-embedding-3-small",
-        api_key=config.OPENAI_API_KEY
-    )
-    Settings.llm = Anthropic(
-        model="claude-3-5-sonnet-20241022",
-        api_key=config.ANTHROPIC_API_KEY
-    )
+    if config.GEMINI_API_KEY and (not config.OPENAI_API_KEY or config.OPENAI_API_KEY == "mock-openai-key"):
+        Settings.embed_model = GeminiEmbedding(
+            model_name="models/embedding-001",
+            api_key=config.GEMINI_API_KEY
+        )
+        Settings.llm = Gemini(
+            model="models/gemini-pro",
+            api_key=config.GEMINI_API_KEY
+        )
+    else:
+        Settings.embed_model = OpenAIEmbedding(
+            model="text-embedding-3-small",
+            api_key=config.OPENAI_API_KEY
+        )
+        Settings.llm = Anthropic(
+            model="claude-3-5-sonnet-20241022",
+            api_key=config.ANTHROPIC_API_KEY
+        )
+
     
     try:
         # Connect to Chroma persistent client

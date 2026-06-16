@@ -34,13 +34,15 @@ def test_load_url_failure():
 
 
 @patch("ingest.OpenAIEmbedding")
+@patch("ingest.GeminiEmbedding")
 @patch("ingest.SentenceSplitter")
 @patch("ingest.chromadb.PersistentClient")
 @patch("ingest.VectorStoreIndex")
 @patch("ingest.SimpleDirectoryReader")
 def test_ingest_source_local_file(
-    mock_reader_cls, mock_index_cls, mock_chroma_cls, mock_splitter_cls, mock_embed_cls
+    mock_reader_cls, mock_index_cls, mock_chroma_cls, mock_splitter_cls, mock_gemini_embed_cls, mock_openai_embed_cls
 ):
+
     """Test ingesting local files is properly parsed, chunked, and stored in vector DB."""
     # Mocking SimpleDirectoryReader
     mock_reader = MagicMock()
