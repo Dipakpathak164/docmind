@@ -41,7 +41,7 @@ def answer(question: str) -> dict:
         )
     elif config.GEMINI_API_KEY:
         Settings.llm = Gemini(
-            model="models/gemini-2.5-flash",
+            model_name="models/gemini-2.5-flash",
             api_key=config.GEMINI_API_KEY
         )
 

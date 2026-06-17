@@ -84,6 +84,11 @@ st.markdown("""
         transform: translateY(-1px) !important;
         box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4) !important;
     }
+    
+    /* Hide Streamlit brandings and developer menus */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -98,7 +103,7 @@ except ValueError as e:
 
 # Sidebar UI
 with st.sidebar:
-    st.image("https://img.icons8.com/gradient/100/brain.png", width=80)
+    st.markdown("<h1 style='margin: 0; font-size: 4rem; line-height: 1;'>🧠</h1>", unsafe_allow_html=True)
     st.markdown("### DocMind Core")
     st.markdown("---")
     
@@ -107,37 +112,61 @@ with st.sidebar:
         st.stop()
         
     st.subheader("📚 Knowledge Base")
-    uploaded_files = st.file_uploader(
-        "Upload reference documents",
-        type=["pdf", "txt", "docx"],
-        accept_multiple_files=True
-    )
+    tab1, tab2 = st.tabs(["📁 Files", "🌐 URL"])
     
-    index_btn = st.button("Index documents")
-    
-    if index_btn:
-        if not uploaded_files:
-            st.warning("Please upload at least one document first.")
-        else:
-            TEMP_DIR = Path("./temp_uploads")
-            if TEMP_DIR.exists():
-                shutil.rmtree(TEMP_DIR)
-            TEMP_DIR.mkdir(parents=True, exist_ok=True)
-            
-            try:
-                for uploaded_file in uploaded_files:
-                    file_path = TEMP_DIR / uploaded_file.name
-                    with open(file_path, "wb") as f:
-                        f.write(uploaded_file.getbuffer())
-                
-                with st.spinner("Processing & embedding chunks..."):
-                    num_chunks, num_docs = ingest_source(str(TEMP_DIR))
-                    st.success(f"Successfully indexed {num_chunks} chunks from {num_docs} documents.")
-            except Exception as e:
-                st.error(f"Error during ingestion: {e}")
-            finally:
+    with tab1:
+        uploaded_files = st.file_uploader(
+            "Upload reference documents",
+            type=["pdf", "txt", "docx"],
+            accept_multiple_files=True,
+            key="file_uploader"
+        )
+        index_btn = st.button("Index documents", key="index_files_btn")
+        
+        if index_btn:
+            if not uploaded_files:
+                st.warning("Please upload at least one document first.")
+            else:
+                TEMP_DIR = Path("./temp_uploads")
                 if TEMP_DIR.exists():
                     shutil.rmtree(TEMP_DIR)
+                TEMP_DIR.mkdir(parents=True, exist_ok=True)
+                
+                try:
+                    for uploaded_file in uploaded_files:
+                        file_path = TEMP_DIR / uploaded_file.name
+                        with open(file_path, "wb") as f:
+                            f.write(uploaded_file.getbuffer())
+                    
+                    with st.spinner("Processing & embedding chunks..."):
+                        num_chunks, num_docs = ingest_source(str(TEMP_DIR))
+                        st.success(f"Successfully indexed {num_chunks} chunks from {num_docs} documents.")
+                except Exception as e:
+                    st.error(f"Error during ingestion: {e}")
+                finally:
+                    if TEMP_DIR.exists():
+                        shutil.rmtree(TEMP_DIR)
+                        
+    with tab2:
+        web_url = st.text_input(
+            "Enter website URL",
+            placeholder="https://example.com/article",
+            key="web_url_input"
+        )
+        index_url_btn = st.button("Index website", key="index_url_btn")
+        
+        if index_url_btn:
+            if not web_url:
+                st.warning("Please enter a website URL first.")
+            elif not web_url.startswith(("http://", "https://")):
+                st.error("Please enter a valid URL starting with http:// or https://")
+            else:
+                try:
+                    with st.spinner("Scraping and indexing website..."):
+                        num_chunks, num_docs = ingest_source(web_url)
+                        st.success(f"Successfully indexed {num_chunks} chunks from 1 web page.")
+                except Exception as e:
+                    st.error(f"Error during website ingestion: {e}")
                     
     st.markdown("---")
     st.markdown("### Settings")
@@ -157,7 +186,7 @@ with st.sidebar:
 
 # Main Area UI
 st.markdown('<div class="app-header">DocMind</div>', unsafe_allow_html=True)
-st.markdown('<div class="app-tagline">Ask anything about your documents — get answers with citations.</div>', unsafe_allow_html=True)
+st.markdown('<div class="app-tagline">Ask anything about your documents or website URLs — get answers with citations.</div>', unsafe_allow_html=True)
 
 # Chat Session State
 if "messages" not in st.session_state:
@@ -183,7 +212,7 @@ for message in st.session_state.messages:
             st.warning("No relevant information found in the documents.")
 
 # Message input
-if prompt := st.chat_input("Ask a question about your documents..."):
+if prompt := st.chat_input("Ask a question about your documents or website URLs..."):
     # Render user message immediately
     with st.chat_message("user"):
         st.markdown(prompt)
