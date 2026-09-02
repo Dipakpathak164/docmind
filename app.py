@@ -278,74 +278,84 @@ except ValueError as e:
     config_error = str(e)
 
 def get_indexing_loader_html(title: str, subtitle: str, is_light: bool) -> str:
-    """Returns HTML for an animated scanning loader card rendered in the main right content area during ingestion."""
-    card_bg = "#ffffff" if is_light else "#161922"
-    border_color = "#cbd5e1" if is_light else "#334155"
-    title_color = "#0f172a" if is_light else "#f8fafc"
+    """Returns HTML for a borderless, ultra-premium floating loader state rendered in the main right content area during ingestion."""
     subtitle_color = "#475569" if is_light else "#94a3b8"
-    track_bg = "#e2e8f0" if is_light else "#272d3d"
+    track_bg = "rgba(203, 213, 225, 0.4)" if is_light else "rgba(51, 65, 85, 0.5)"
 
     return f"""
     <style>
-        @keyframes pulse-brain {{
-            0% {{ transform: scale(1); filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.4)); }}
-            50% {{ transform: scale(1.15); filter: drop-shadow(0 0 22px rgba(124, 58, 237, 0.85)); }}
-            100% {{ transform: scale(1); filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.4)); }}
+        @keyframes float-pulse {{
+            0% {{ transform: translateY(0px) scale(1); filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.4)); }}
+            50% {{ transform: translateY(-10px) scale(1.12); filter: drop-shadow(0 0 28px rgba(56, 189, 248, 0.85)); }}
+            100% {{ transform: translateY(0px) scale(1); filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.4)); }}
         }}
-        @keyframes progress-slide {{
-            0% {{ width: 5%; }}
-            50% {{ width: 75%; }}
-            100% {{ width: 98%; }}
+        @keyframes text-shimmer {{
+            0% {{ background-position: 0% 50%; }}
+            50% {{ background-position: 100% 50%; }}
+            100% {{ background-position: 0% 50%; }}
         }}
-        .loader-card {{
-            background-color: {card_bg};
-            border: 1px solid {border_color};
-            border-radius: 16px;
-            padding: 36px 24px;
+        @keyframes laser-glow {{
+            0% {{ width: 5%; opacity: 0.4; }}
+            50% {{ width: 75%; opacity: 1; }}
+            100% {{ width: 98%; opacity: 0.4; }}
+        }}
+        .premium-loader-wrap {{
+            padding: 50px 20px 40px 20px;
             text-align: center;
-            margin: 24px 0;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
         }}
-        .loader-icon {{
-            font-size: 3.8rem;
-            animation: pulse-brain 1.5s infinite ease-in-out;
+        .glowing-icon {{
+            font-size: 4.2rem;
             display: inline-block;
-            margin-bottom: 12px;
+            animation: float-pulse 2s infinite ease-in-out;
+            margin-bottom: 16px;
         }}
-        .loader-title {{
+        .shimmer-title {{
             font-weight: 700;
-            font-size: 1.35rem;
-            color: {title_color};
-            margin-bottom: 6px;
+            font-size: 1.6rem;
+            background: linear-gradient(90deg, #4f46e5, #7c3aed, #38bdf8, #818cf8, #4f46e5);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: text-shimmer 3.5s linear infinite;
+            margin-bottom: 8px;
+            letter-spacing: -0.01em;
         }}
-        .loader-subtitle {{
+        .subtitle-text {{
             color: {subtitle_color};
-            font-size: 0.95rem;
-            margin-bottom: 24px;
+            font-size: 1.02rem;
+            font-weight: 400;
+            margin-bottom: 28px;
         }}
-        .progress-track {{
-            width: 100%;
-            height: 8px;
+        .laser-track {{
+            width: 70%;
+            max-width: 520px;
+            height: 4px;
             background-color: {track_bg};
-            border-radius: 10px;
+            margin: 0 auto;
+            border-radius: 99px;
             overflow: hidden;
         }}
-        .progress-fill {{
+        .laser-fill {{
             height: 100%;
             background: linear-gradient(90deg, #4f46e5 0%, #7c3aed 50%, #38bdf8 100%);
-            animation: progress-slide 2.5s infinite ease-in-out;
-            border-radius: 10px;
+            border-radius: 99px;
+            animation: laser-glow 2.2s infinite ease-in-out;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.7);
         }}
     </style>
-    <div class="loader-card">
-        <div class="loader-icon">🧠</div>
-        <div class="loader-title">{title}</div>
-        <div class="loader-subtitle">{subtitle}</div>
-        <div class="progress-track">
-            <div class="progress-fill"></div>
+    <div class="premium-loader-wrap">
+        <div class="glowing-icon">🧠</div>
+        <div class="shimmer-title">{title}</div>
+        <div class="subtitle-text">{subtitle}</div>
+        <div class="laser-track">
+            <div class="laser-fill"></div>
         </div>
     </div>
     """
+
 
 
 # Main area loader placeholder for displaying active indexing animation
