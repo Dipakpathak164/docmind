@@ -1,8 +1,10 @@
 # pyrefly: ignore [missing-import]
 import streamlit as st
+import streamlit.components.v1 as components
 import os
 import shutil
 from pathlib import Path
+
 
 # Set up page configurations with SEO title
 st.set_page_config(
@@ -12,86 +14,259 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for a beautiful visual design (Premium Dark Mode feel)
-st.markdown("""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
-    
-    /* Apply typography */
-    * {
-        font-family: 'Outfit', sans-serif;
-    }
-    
-    /* Main container background */
-    .stApp {
-        background-color: #0d0e12;
-        color: #e2e8f0;
-    }
-    
-    /* Custom Sidebar design */
-    section[data-testid="stSidebar"] {
-        background-color: #161922;
-        border-right: 1px solid #2d3142;
-    }
-    
-    /* Glassmorphic title headers */
-    .app-header {
-        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-weight: 700;
-        font-size: 3rem;
-        margin-bottom: 0.2rem;
-    }
-    
-    .app-tagline {
-        color: #94a3b8;
-        font-size: 1.2rem;
-        margin-bottom: 2rem;
-    }
-    
-    /* Custom style for source expander */
-    .source-block {
-        background-color: #1a1e29;
-        border: 1px solid #334155;
-        border-radius: 8px;
-        padding: 12px;
-        margin-top: 8px;
-    }
-    
-    .source-header {
-        font-weight: 600;
-        color: #38bdf8;
-    }
-    
-    .source-score {
-        font-size: 0.85rem;
-        color: #10b981;
-    }
-    
-    /* Styling button */
-    .stButton>button {
-        background: linear-gradient(90deg, #4f46e5 0%, #7c3aed 100%) !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 8px !important;
-        padding: 0.6rem 1.2rem !important;
-        font-weight: 600 !important;
-        transition: all 0.3s ease !important;
-        width: 100% !important;
-    }
-    .stButton>button:hover {
-        opacity: 0.9 !important;
-        transform: translateY(-1px) !important;
-        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4) !important;
-    }
-    
-    /* Hide Streamlit brandings and developer menus */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-</style>
-""", unsafe_allow_html=True)
+# Dynamic Theme CSS Applier
+def apply_theme_css(is_light: bool):
+    if is_light:
+        bg_color = "#f8fafc"
+        text_color = "#0f172a"
+        subtext_color = "#475569"
+        sidebar_bg = "#f1f5f9"
+        sidebar_border = "#cbd5e1"
+        card_bg = "#ffffff"
+        card_border = "#cbd5e1"
+        tagline_color = "#475569"
+        header_gradient = "linear-gradient(135deg, #4338ca 0%, #6d28d9 100%)"
+        code_bg = "#e2e8f0"
+        code_color = "#0284c7"
+        code_border = "#cbd5e1"
+        input_bg = "#ffffff"
+        input_border = "#cbd5e1"
+        bottom_bar_bg = "#f8fafc"
+        file_uploader_bg = "#ffffff"
+        caret_color = "#0f172a"
+        toggle_off_bg = "#64748b"
+    else:
+        bg_color = "#0d0e12"
+        text_color = "#e2e8f0"
+        subtext_color = "#94a3b8"
+        sidebar_bg = "#161922"
+        sidebar_border = "#2d3142"
+        card_bg = "#1a1e29"
+        card_border = "#334155"
+        tagline_color = "#94a3b8"
+        header_gradient = "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)"
+        code_bg = "#1a1e29"
+        code_color = "#38bdf8"
+        code_border = "#334155"
+        input_bg = "#161922"
+        input_border = "#2d3142"
+        bottom_bar_bg = "#0d0e12"
+        file_uploader_bg = "#1a1e29"
+        caret_color = "#38bdf8"
+        toggle_off_bg = "#475569"
+
+    st.markdown(f"""
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+        
+        * {{
+            font-family: 'Outfit', sans-serif;
+        }}
+        
+        /* Main App Background & Typography */
+        .stApp {{
+            background-color: {bg_color} !important;
+            color: {text_color} !important;
+        }}
+
+        /* Bottom Chat Container Bar */
+        section[data-testid="stBottom"],
+        div[data-testid="stBottomBlockContainer"] {{
+            background-color: {bottom_bar_bg} !important;
+        }}
+
+        /* Custom Sidebar design */
+        section[data-testid="stSidebar"] {{
+            background-color: {sidebar_bg} !important;
+            border-right: 1px solid {sidebar_border} !important;
+        }}
+        
+        section[data-testid="stSidebar"] h1, 
+        section[data-testid="stSidebar"] h2, 
+        section[data-testid="stSidebar"] h3,
+        section[data-testid="stSidebar"] p,
+        section[data-testid="stSidebar"] label,
+        section[data-testid="stSidebar"] span {{
+            color: {text_color} !important;
+        }}
+
+        /* Inline Backtick Code Tags */
+        code {{
+            background-color: {code_bg} !important;
+            color: {code_color} !important;
+            border: 1px solid {code_border} !important;
+            border-radius: 4px !important;
+            padding: 2px 6px !important;
+        }}
+
+        /* File Uploader Dropzone */
+        div[data-testid="stFileUploader"] section,
+        div[data-testid="stFileUploaderDropzone"] {{
+            background-color: {file_uploader_bg} !important;
+            border: 2px dashed {card_border} !important;
+            color: {text_color} !important;
+        }}
+
+        div[data-testid="stFileUploader"] p,
+        div[data-testid="stFileUploader"] span,
+        div[data-testid="stFileUploader"] small {{
+            color: {text_color} !important;
+        }}
+
+        div[data-testid="stFileUploader"] button {{
+            background-color: {card_bg} !important;
+            color: {text_color} !important;
+            border: 1px solid {card_border} !important;
+        }}
+
+        /* Form Inputs & Textarea (Scoped strictly to input elements, NOT toggle labels) */
+        input[type="text"], input[type="number"], textarea, div[data-baseweb="input"] > input {{
+            background-color: {input_bg} !important;
+            color: {text_color} !important;
+            border-color: {input_border} !important;
+            caret-color: {caret_color} !important;
+        }}
+
+        /* Streamlit st.toggle Widget Styling (Targets data-testid="stToggle" switch button ONLY) */
+        div[data-testid="stToggle"] [role="switch"],
+        div[data-testid="stToggle"] label > div:first-of-type {{
+            background-color: {toggle_off_bg} !important;
+            border: 1px solid {toggle_off_bg} !important;
+        }}
+
+        div[data-testid="stToggle"] input:checked + div,
+        div[data-testid="stToggle"] [role="switch"][aria-checked="true"] {{
+            background-color: #ff4b4b !important;
+            border: 1px solid #ff4b4b !important;
+        }}
+
+        div[data-testid="stToggle"] [role="switch"] > div,
+        div[data-testid="stToggle"] label > div:first-of-type > div {{
+            background-color: #ffffff !important;
+        }}
+
+        /* Ensure stToggle text labels have transparent background and clean text color */
+        div[data-testid="stToggle"] p,
+        div[data-testid="stToggle"] span,
+        div[data-testid="stToggle"] label {{
+            background-color: transparent !important;
+            border: none !important;
+            color: {text_color} !important;
+        }}
+
+
+
+
+
+
+
+
+        /* Tabs Styling */
+        button[data-baseweb="tab"] {{
+            color: {subtext_color} !important;
+        }}
+        
+        button[data-baseweb="tab"][aria-selected="true"] {{
+            color: #4f46e5 !important;
+            border-bottom-color: #4f46e5 !important;
+        }}
+
+        /* Sliders */
+        div[data-testid="stSlider"] p,
+        div[data-testid="stSlider"] span,
+        div[data-testid="stSlider"] div {{
+            color: {text_color} !important;
+        }}
+
+        /* Expanders */
+        div[data-testid="stExpander"] {{
+            background-color: {card_bg} !important;
+            border: 1px solid {card_border} !important;
+            border-radius: 8px !important;
+        }}
+
+        div[data-testid="stExpander"] summary span {{
+            color: {text_color} !important;
+        }}
+
+        /* Glassmorphic title headers */
+        .app-header {{
+            background: {header_gradient};
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+            font-size: 3rem;
+            margin-bottom: 0.2rem;
+        }}
+        
+        .app-tagline {{
+            color: {tagline_color} !important;
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+        }}
+        
+        /* Custom style for source expander */
+        .source-block {{
+            background-color: {card_bg} !important;
+            border: 1px solid {card_border} !important;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 8px;
+        }}
+        
+        .source-header {{
+            font-weight: 600;
+            color: #0284c7 !important;
+        }}
+        
+        .source-score {{
+            font-size: 0.85rem;
+            color: #10b981 !important;
+        }}
+        
+        /* Styling button */
+        .stButton>button {{
+            background: linear-gradient(90deg, #4f46e5 0%, #7c3aed 100%) !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 8px !important;
+            padding: 0.6rem 1.2rem !important;
+            font-weight: 600 !important;
+            transition: all 0.3s ease !important;
+            width: 100% !important;
+        }}
+        .stButton>button:hover {{
+            opacity: 0.9 !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4) !important;
+        }}
+        
+        /* Chat Messages */
+        div[data-testid="stChatMessage"] {{
+            background-color: {card_bg} !important;
+            border: 1px solid {card_border} !important;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }}
+        
+        div[data-testid="stChatMessage"] p,
+        div[data-testid="stChatMessage"] span,
+        div[data-testid="stChatMessage"] div {{
+            color: {text_color} !important;
+        }}
+
+        #MainMenu {{visibility: hidden;}}
+        footer {{visibility: hidden;}}
+        header {{visibility: hidden;}}
+    </style>
+    """, unsafe_allow_html=True)
+
+
+# Apply theme CSS based on persistent session state
+is_light_theme = st.session_state.get("is_light_mode", False)
+apply_theme_css(is_light_theme)
+
 
 # Try importing dependencies and handle environment configuration error elegantly
 try:
@@ -117,7 +292,6 @@ with st.sidebar:
         _, status_msg, status_icon = st.session_state.pop("action_status")
         st.toast(status_msg, icon=status_icon)
 
-        
     st.subheader("📚 Knowledge Base")
     tab1, tab2, tab3 = st.tabs(["📁 Upload", "🌐 Website", "🗂️ Manage"])
     
@@ -217,12 +391,18 @@ with st.sidebar:
                 else:
                     st.warning("Please check the confirmation box first.")
 
-
                     
     st.markdown("---")
     st.markdown("### ⚙️ Control Panel")
     
-    # Dynamic parameter sliders and controls
+    # Theme Toggle & Dynamic parameter sliders
+    is_light_theme = st.toggle("☀️ Light Theme", value=st.session_state.get("is_light_mode", False), key="light_theme_toggle")
+    if is_light_theme != st.session_state.get("is_light_mode", False):
+        st.session_state["is_light_mode"] = is_light_theme
+        apply_theme_css(is_light_theme)
+        st.rerun()
+
+
     default_top_k = int(getattr(config, "TOP_K", 5))
     default_cutoff = float(getattr(config, "SIMILARITY_CUTOFF", 0.35))
     top_k = st.slider("Top K Candidates", min_value=1, max_value=10, value=default_top_k, key="top_k_slider")
@@ -230,13 +410,13 @@ with st.sidebar:
     hybrid_search = st.toggle("Enable BM25 Hybrid Search", value=getattr(config, "HYBRID_SEARCH", True), key="hybrid_toggle")
     enable_streaming = st.toggle("Token Streaming Response", value=True, key="stream_toggle")
 
-
     embed_provider = "OpenAI" if config.OPENAI_API_KEY else "Google Gemini"
     llm_provider = "Anthropic (Claude)" if config.ANTHROPIC_API_KEY else "Google Gemini"
     active_backend = f"{embed_provider} (Embeddings) + {llm_provider} (LLM)"
 
     st.caption(f"**Active Backend**: `{active_backend}`")
     st.caption(f"**Collection**: `{config.COLLECTION_NAME}`")
+
 
 
 
@@ -257,15 +437,18 @@ if st.session_state.messages:
             st.session_state.messages = []
             st.rerun()
 
-import streamlit.components.v1 as components
-
-def render_copy_button(text: str, key_suffix: str = ""):
-    """Renders an icon-only Copy to Clipboard button (standard SVG double-rectangle icon) for chat messages."""
+def render_copy_button(text: str, key_suffix: str = "", is_light: bool = False):
+    """Renders an icon-only Copy to Clipboard button (standard SVG double-rectangle icon) adapted for current theme."""
     import json
     safe_text = json.dumps(text)
     btn_id = f"btn_{abs(hash(text))}_{key_suffix}"
     svg_icon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>'
     check_icon = '<span style="color: #10b981; font-weight: bold; font-size: 13px;">✓</span>'
+
+    btn_bg = "#ffffff" if is_light else "#1a1e29"
+    btn_border = "#cbd5e1" if is_light else "#334155"
+    btn_color = "#475569" if is_light else "#94a3b8"
+    hover_bg = "#f1f5f9" if is_light else "#272d3d"
 
     html_code = f"""
     <!DOCTYPE html>
@@ -281,9 +464,9 @@ def render_copy_button(text: str, key_suffix: str = ""):
           align-items: center;
         }}
         .copy-btn {{
-          background-color: #1a1e29;
-          border: 1px solid #334155;
-          color: #94a3b8;
+          background-color: {btn_bg};
+          border: 1px solid {btn_border};
+          color: {btn_color};
           border-radius: 6px;
           width: 28px;
           height: 28px;
@@ -295,8 +478,7 @@ def render_copy_button(text: str, key_suffix: str = ""):
           justify-content: center;
         }}
         .copy-btn:hover {{
-          background-color: #272d3d;
-          color: #f1f5f9;
+          background-color: {hover_bg};
           border-color: #475569;
         }}
       </style>
@@ -312,7 +494,7 @@ def render_copy_button(text: str, key_suffix: str = ""):
           btn.style.borderColor = "#10b981";
           setTimeout(function() {{
             btn.innerHTML = '{svg_icon}';
-            btn.style.borderColor = "#334155";
+            btn.style.borderColor = "{btn_border}";
           }}, 2000);
         }}
       </script>
@@ -321,13 +503,12 @@ def render_copy_button(text: str, key_suffix: str = ""):
     """
     components.html(html_code, height=32)
 
-
 # Display conversation history
 for idx, message in enumerate(st.session_state.messages):
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
         if message.get("content"):
-            render_copy_button(message["content"], f"hist_{idx}")
+            render_copy_button(message["content"], f"hist_{idx}", is_light=is_light_theme)
             
         if message["role"] == "assistant" and "sources" in message and message["sources"]:
             with st.expander("🔍 Citations & Sources"):
@@ -349,7 +530,7 @@ if prompt := st.chat_input("Ask a question about your documents or website URLs.
     # Render user message immediately
     with st.chat_message("user"):
         st.markdown(prompt)
-        render_copy_button(prompt, "user_live")
+        render_copy_button(prompt, "user_live", is_light=is_light_theme)
     
     # Generate response
     with st.chat_message("assistant"):
@@ -369,7 +550,8 @@ if prompt := st.chat_input("Ask a question about your documents or website URLs.
             st.markdown(answer_text)
             
         if answer_text:
-            render_copy_button(answer_text, "asst_live")
+            render_copy_button(answer_text, "asst_live", is_light=is_light_theme)
+
 
         if res["has_answer"] and res["sources"]:
             with st.expander("🔍 Citations & Sources"):
