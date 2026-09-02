@@ -4,9 +4,9 @@ import os
 import shutil
 from pathlib import Path
 
-# Set up page configurations
+# Set up page configurations with SEO title
 st.set_page_config(
-    page_title="DocMind",
+    page_title="DocMind – AI Document & Website QA Engine with Citations",
     page_icon="🧠",
     layout="wide",
     initial_sidebar_state="expanded"

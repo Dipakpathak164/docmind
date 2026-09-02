@@ -1,16 +1,19 @@
-# DocMind
+# DocMind – AI Document & Website QA Engine with Citations
 
-Ask anything about your documents — get answers with citations.
+Ask anything about your PDFs, text documents, or website URLs and get instant, accurate AI answers anchored with verifiable source citations using Retrieval-Augmented Generation (RAG).
 
 ![Demo](assets/demo.gif)
 
 ## Features
-- **Multi-format Support**: Ingest and query PDF, TXT, DOCX files, and raw Web URLs.
-- **Robust Semantic Chunking**: Splitting files using SentenceSplitter, adjusting parameters like chunk size and overlaps.
-- **State-of-the-Art Models**: OpenAI embedding (`text-embedding-3-small`) combined with Anthropic Claude 3.5 Sonnet (`claude-3-5-sonnet-20241022`) for context synthesis.
-- **Deterministic Cite Citations**: Exact citation mappings displaying text snippets, source document tags, and vector similarity match scores.
-- **Strict Relevance Fallback**: Discards chunks below `SIMILARITY_CUTOFF` and warns when no context is relevant.
-- **Premium User Interface**: Dark mode dashboard, sleek layouts, interactive sidebar indexing, and a chat canvas.
+- **Multi-format & Web Ingestion**: Ingest and query PDF, TXT, DOCX files, and public Web URLs with automatic anti-bot block detection.
+- **SHA256 Content Deduplication**: Smart content hashing prevents duplicate chunk indexing in the vector store.
+- **Knowledge Base Catalog UI**: Live document management dashboard in Streamlit allowing single-click file deletion and database resets.
+- **BM25 Hybrid Retrieval**: Combines dense vector similarity search with sparse BM25 keyword matching for maximum retrieval accuracy.
+- **Real-Time Token Streaming**: Word-by-word streaming AI response generation powered by LlamaIndex synthesizer and Streamlit.
+- **Multi-Turn Conversational Memory**: Contextualized follow-up question answering based on past chat conversation history.
+- **Icon-Only Copy to Clipboard**: One-click SVG copy buttons attached to user queries and assistant responses.
+- **Deterministic Citations**: Exact citation mappings displaying text snippets, source document tags, and similarity match scores.
+
 
 ## Architecture
 

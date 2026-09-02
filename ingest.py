@@ -102,13 +102,24 @@ def clear_knowledge_base(collection_name: str = None) -> bool:
         return False
 
 def load_url(url: str) -> list[Document]:
-    """Fetch text content from a URL and return a LlamaIndex Document with metadata."""
+    """Fetch text content from a URL and return a LlamaIndex Document with metadata. Detects anti-bot/scraping blocks."""
     try:
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5"
         }
         response = requests.get(url, headers=headers, timeout=15)
+        
+        if response.status_code in (403, 401, 429):
+            raise ValueError(f"Access Denied ({response.status_code}): This website blocks automated web scraping (anti-bot / Cloudflare protection). Please try another public website or upload a document.")
+            
         response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        status_code = e.response.status_code if e.response is not None else ""
+        if status_code in (403, 401, 429):
+            raise ValueError(f"Access Denied ({status_code}): This website blocks automated web scraping (anti-bot / Cloudflare protection). Please try another public website or upload a document.")
+        raise ValueError(f"HTTP Error {status_code} accessing '{url}': {e}")
     except requests.exceptions.RequestException as e:
         raise ValueError(f"Failed to fetch content from URL '{url}': {e}")
 
@@ -128,10 +139,17 @@ def load_url(url: str) -> list[Document]:
         )
         
         if not cleaned_text:
-            raise ValueError("No text content could be extracted from the URL.")
+            raise ValueError("No readable text content could be extracted from the URL.")
             
+        # Detect anti-bot challenge / block screens
+        lower_text = cleaned_text.lower()
+        bot_signals = ["enable javascript", "cloudflare", "access denied", "ddos protection", "just a moment...", "security check", "pardon our interruption"]
+        if any(sig in lower_text for sig in bot_signals) and len(cleaned_text.split()) < 80:
+            raise ValueError(f"This website blocks automated web scraping (anti-bot / Cloudflare security active). Please try another public website or upload a document.")
+
         file_hash = compute_hash(cleaned_text)
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+
         
         return [Document(
             text=cleaned_text,
