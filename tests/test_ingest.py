@@ -6,7 +6,7 @@ from pathlib import Path
 # Enable testing mode in config
 os.environ["TESTING"] = "true"
 
-from ingest import load_url, ingest_source
+from ingest import load_url, ingest_source, get_indexed_documents, delete_document, clear_knowledge_base
 
 def test_load_url_success():
     """Test downloading and extracting text content from a web URL."""
@@ -48,6 +48,7 @@ def test_ingest_source_local_file(
     mock_reader = MagicMock()
     mock_doc = MagicMock()
     mock_doc.text = "Sample text here"
+    mock_doc.metadata = {}
     mock_reader.load_data.return_value = [mock_doc]
     mock_reader_cls.return_value = mock_reader
 
@@ -63,6 +64,7 @@ def test_ingest_source_local_file(
     # Mocking Chroma DB
     mock_client = MagicMock()
     mock_collection = MagicMock()
+    mock_collection.get.return_value = {"metadatas": []}
     mock_client.get_or_create_collection.return_value = mock_collection
     mock_chroma_cls.return_value = mock_client
 
@@ -81,3 +83,51 @@ def test_ingest_source_not_found():
     with patch("pathlib.Path.exists", return_value=False):
         with pytest.raises(FileNotFoundError):
             ingest_source("nonexistent_file.txt")
+
+@patch("ingest.get_chroma_client_and_collection")
+def test_get_indexed_documents(mock_get_chroma):
+    """Test get_indexed_documents groups metadata into a doc catalog."""
+    mock_collection = MagicMock()
+    mock_collection.get.return_value = {
+        "metadatas": [
+            {"source": "doc1.txt", "file_name": "doc1.txt", "file_hash": "h1", "indexed_at": "2026-09-02"},
+            {"source": "doc1.txt", "file_name": "doc1.txt", "file_hash": "h1", "indexed_at": "2026-09-02"},
+            {"source": "doc2.pdf", "file_name": "doc2.pdf", "file_hash": "h2", "indexed_at": "2026-09-02"},
+        ]
+    }
+    mock_get_chroma.return_value = (MagicMock(), mock_collection)
+
+    docs = get_indexed_documents()
+    assert len(docs) == 2
+    doc1 = next(d for d in docs if d["source"] == "doc1.txt")
+    assert doc1["chunk_count"] == 2
+
+@patch("ingest.get_chroma_client_and_collection")
+def test_delete_document(mock_get_chroma):
+    """Test deleting document matching source identifier."""
+    mock_collection = MagicMock()
+    mock_collection.get.return_value = {
+        "ids": ["id1", "id2", "id3"],
+        "metadatas": [
+            {"source": "target.txt"},
+            {"source": "target.txt"},
+            {"source": "other.txt"}
+        ]
+    }
+    mock_get_chroma.return_value = (MagicMock(), mock_collection)
+
+    deleted_count = delete_document("target.txt")
+    assert deleted_count == 2
+    mock_collection.delete.assert_called_once_with(ids=["id1", "id2"])
+
+@patch("ingest.get_chroma_client_and_collection")
+def test_clear_knowledge_base(mock_get_chroma):
+    """Test clearing vector database collection."""
+    mock_client = MagicMock()
+    mock_collection = MagicMock()
+    mock_get_chroma.return_value = (mock_client, mock_collection)
+
+    result = clear_knowledge_base()
+    assert result is True
+    mock_client.delete_collection.assert_called_once()
+

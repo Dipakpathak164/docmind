@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 import streamlit as st
 import os
 import shutil
@@ -94,7 +95,7 @@ st.markdown("""
 
 # Try importing dependencies and handle environment configuration error elegantly
 try:
-    from ingest import ingest_source
+    from ingest import ingest_source, get_indexed_documents, delete_document, clear_knowledge_base
     from query import answer
     import config
     config_error = None
@@ -110,9 +111,9 @@ with st.sidebar:
     if config_error:
         st.error(config_error)
         st.stop()
-        
+
     st.subheader("📚 Knowledge Base")
-    tab1, tab2 = st.tabs(["📁 Files", "🌐 URL"])
+    tab1, tab2, tab3 = st.tabs(["📁 Upload", "🌐 Website", "🗂️ Manage"])
     
     with tab1:
         uploaded_files = st.file_uploader(
@@ -140,7 +141,10 @@ with st.sidebar:
                     
                     with st.spinner("Processing & embedding chunks..."):
                         num_chunks, num_docs = ingest_source(str(TEMP_DIR))
-                        st.success(f"Successfully indexed {num_chunks} chunks from {num_docs} documents.")
+                        if num_chunks == 0:
+                            st.toast("Document content is already indexed in the vector store.", icon="ℹ️")
+                        else:
+                            st.toast(f"Successfully indexed {num_chunks} chunks from {num_docs} documents.", icon="✅")
                 except Exception as e:
                     st.error(f"Error during ingestion: {e}")
                 finally:
@@ -164,24 +168,61 @@ with st.sidebar:
                 try:
                     with st.spinner("Scraping and indexing website..."):
                         num_chunks, num_docs = ingest_source(web_url)
-                        st.success(f"Successfully indexed {num_chunks} chunks from 1 web page.")
+                        if num_chunks == 0:
+                            st.toast("Website content is already indexed.", icon="ℹ️")
+                        else:
+                            st.toast(f"Successfully indexed {num_chunks} chunks from 1 web page.", icon="✅")
                 except Exception as e:
                     st.error(f"Error during website ingestion: {e}")
+
+
+    with tab3:
+        indexed_docs = get_indexed_documents()
+        if not indexed_docs:
+            st.caption("No documents currently indexed.")
+        else:
+            st.markdown(f"**Total Documents**: `{len(indexed_docs)}`")
+            for doc in indexed_docs:
+                with st.expander(f"📄 {doc['file_name']}", expanded=False):
+                    st.write(f"**Source**: `{doc['source']}`")
+                    st.write(f"**Chunks**: `{doc['chunk_count']}`")
+                    st.write(f"**Indexed At**: `{doc['indexed_at']}`")
+                    if st.button(f"🗑️ Delete Document", key=f"del_{doc['source']}"):
+                        deleted_count = delete_document(doc['source'])
+                        st.toast(f"Deleted {deleted_count} chunks from '{doc['file_name']}'.", icon="🗑️")
+                        st.rerun()
+
+            st.markdown("---")
+            confirm_clear = st.checkbox("Confirm clear knowledge base", key="confirm_clear_cb")
+            if st.button("🔴 Clear All Data", key="clear_all_btn"):
+                if confirm_clear:
+                    clear_knowledge_base()
+                    st.toast("Knowledge base reset successfully.", icon="🧹")
+                    st.rerun()
+                else:
+                    st.warning("Please check the confirmation box first.")
+
                     
     st.markdown("---")
-    st.markdown("### Settings")
-    # Determine active backend components
+    st.markdown("### ⚙️ Control Panel")
+    
+    # Dynamic parameter sliders and controls
+    default_top_k = int(getattr(config, "TOP_K", 5))
+    default_cutoff = float(getattr(config, "SIMILARITY_CUTOFF", 0.35))
+    top_k = st.slider("Top K Candidates", min_value=1, max_value=10, value=default_top_k, key="top_k_slider")
+    similarity_cutoff = st.slider("Min Similarity Score", min_value=0.0, max_value=1.0, value=default_cutoff, step=0.05, key="cutoff_slider")
+    hybrid_search = st.toggle("Enable BM25 Hybrid Search", value=getattr(config, "HYBRID_SEARCH", True), key="hybrid_toggle")
+    enable_streaming = st.toggle("Token Streaming Response", value=True, key="stream_toggle")
+
+
     embed_provider = "OpenAI" if config.OPENAI_API_KEY else "Google Gemini"
     llm_provider = "Anthropic (Claude)" if config.ANTHROPIC_API_KEY else "Google Gemini"
     active_backend = f"{embed_provider} (Embeddings) + {llm_provider} (LLM)"
 
-    st.info(
-        f"**Active Backend**: `{active_backend}`\n\n"
-        f"**Collection**: `{config.COLLECTION_NAME}`\n"
-        f"**Chunk Size**: `{config.CHUNK_SIZE}`\n"
-        f"**Overlap**: `{config.CHUNK_OVERLAP}`\n"
-        f"**Min Similarity**: `{config.SIMILARITY_CUTOFF}`"
-    )
+    st.caption(f"**Active Backend**: `{active_backend}`")
+    st.caption(f"**Collection**: `{config.COLLECTION_NAME}`")
+
+
 
 
 # Main Area UI
@@ -191,6 +232,14 @@ st.markdown('<div class="app-tagline">Ask anything about your documents or websi
 # Chat Session State
 if "messages" not in st.session_state:
     st.session_state.messages = []
+
+# Clear chat history button in main UI toolbar
+if st.session_state.messages:
+    col1, col2 = st.columns([0.85, 0.15])
+    with col2:
+        if st.button("🧹 Clear Chat", key="clear_chat_btn"):
+            st.session_state.messages = []
+            st.rerun()
 
 # Display conversation history
 for message in st.session_state.messages:
@@ -216,32 +265,44 @@ if prompt := st.chat_input("Ask a question about your documents or website URLs.
     # Render user message immediately
     with st.chat_message("user"):
         st.markdown(prompt)
-    st.session_state.messages.append({"role": "user", "content": prompt})
     
     # Generate response
     with st.chat_message("assistant"):
-        with st.spinner("Analyzing documents and generating response..."):
-            res = answer(prompt)
-            st.markdown(res["answer"])
+        res = answer(
+            question=prompt,
+            chat_history=st.session_state.messages,
+            top_k=top_k,
+            similarity_cutoff=similarity_cutoff,
+            hybrid_search=hybrid_search,
+            streaming=enable_streaming
+        )
+        
+        if enable_streaming and res.get("answer_stream"):
+            answer_text = st.write_stream(res["answer_stream"])
+        else:
+            answer_text = res.get("answer", "")
+            st.markdown(answer_text)
             
-            if res["has_answer"] and res["sources"]:
-                with st.expander("🔍 Citations & Sources"):
-                    for idx, src in enumerate(res["sources"]):
-                        st.markdown(f"""
-                        <div class="source-block">
-                            <span class="source-header">[{idx + 1}] Source: {src['source']}</span> | 
-                            <span class="source-score">Match Score: {src['score']:.4f}</span>
-                            <p style="color: #94a3b8; font-size: 0.9rem; margin-top: 6px; font-style: italic;">
-                                "...{src['text']}..."
-                            </p>
-                        </div>
-                        """, unsafe_allow_html=True)
-            elif not res["has_answer"]:
-                st.warning("No relevant information found in the documents.")
-                
-            st.session_state.messages.append({
-                "role": "assistant",
-                "content": res["answer"],
-                "sources": res.get("sources", []),
-                "has_answer": res.get("has_answer", True)
-            })
+        if res["has_answer"] and res["sources"]:
+            with st.expander("🔍 Citations & Sources"):
+                for idx, src in enumerate(res["sources"]):
+                    st.markdown(f"""
+                    <div class="source-block">
+                        <span class="source-header">[{idx + 1}] Source: {src['source']}</span> | 
+                        <span class="source-score">Match Score: {src['score']:.4f}</span>
+                        <p style="color: #94a3b8; font-size: 0.9rem; margin-top: 6px; font-style: italic;">
+                            "...{src['text']}..."
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
+        elif not res["has_answer"]:
+            st.warning("No relevant information found in the documents.")
+            
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        st.session_state.messages.append({
+            "role": "assistant",
+            "content": answer_text,
+            "sources": res.get("sources", []),
+            "has_answer": res.get("has_answer", True)
+        })
+

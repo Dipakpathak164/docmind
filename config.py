@@ -2,8 +2,13 @@ import os
 import sys
 from dotenv import load_dotenv
 
+# Suppress ChromaDB anonymous telemetry warnings
+os.environ["ANONYMOUS_TELEMETRY"] = "False"
+
 # Load environment variables from .env
-load_dotenv()
+load_dotenv(override=True)
+
+
 
 # Determine if we are running in a pytest environment
 IS_TESTING = (
@@ -26,10 +31,10 @@ if GEMINI_API_KEY and ("your_gemini_api_key" in GEMINI_API_KEY or GEMINI_API_KEY
     GEMINI_API_KEY = None
 
 # Check required API keys unless we are executing unit tests
-missing_keys = []
 # We need at least one embedding key and one LLM key
 has_embedding_key = bool(OPENAI_API_KEY or GEMINI_API_KEY)
 has_llm_key = bool(ANTHROPIC_API_KEY or GEMINI_API_KEY)
+
 
 if (not has_embedding_key or not has_llm_key) and not IS_TESTING:
     raise ValueError(
@@ -67,11 +72,16 @@ except ValueError:
 
 # Retrieval Configuration
 try:
-    TOP_K = int(os.getenv("TOP_K", "3"))
+    TOP_K = int(os.getenv("TOP_K", "5"))
 except ValueError:
-    TOP_K = 3
+    TOP_K = 5
 
 try:
-    SIMILARITY_CUTOFF = float(os.getenv("SIMILARITY_CUTOFF", "0.7"))
+    SIMILARITY_CUTOFF = float(os.getenv("SIMILARITY_CUTOFF", "0.35"))
 except ValueError:
-    SIMILARITY_CUTOFF = 0.7
+    SIMILARITY_CUTOFF = 0.35
+
+
+# Advanced Retrieval Features
+HYBRID_SEARCH = os.getenv("HYBRID_SEARCH", "true").lower() in ("true", "1", "yes")
+

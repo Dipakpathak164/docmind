@@ -104,3 +104,56 @@ def test_answer_no_relevant_info(
     assert res["has_answer"] is False
     assert res["answer"] == "I could not find relevant information in the documents."
     assert len(res["sources"]) == 0
+
+@patch("query.OpenAIEmbedding")
+@patch("query.GeminiEmbedding")
+@patch("query.Anthropic")
+@patch("query.Gemini")
+@patch("query.chromadb.PersistentClient")
+@patch("query.VectorStoreIndex")
+@patch("query.get_response_synthesizer")
+def test_answer_streaming_and_chat_history(
+    mock_synth_cls, mock_index_cls, mock_chroma_cls, mock_gemini_cls, mock_anthropic_cls, mock_gemini_embed_cls, mock_openai_embed_cls
+):
+    """Test answer with streaming enabled and past chat history."""
+    mock_client = MagicMock()
+    mock_collection = MagicMock()
+    mock_collection.count.return_value = 1
+    
+    mock_collection_obj = MagicMock()
+    mock_collection_obj.name = "docmind"
+    mock_client.list_collections.return_value = [mock_collection_obj]
+    mock_client.get_collection.return_value = mock_collection
+    mock_chroma_cls.return_value = mock_client
+
+    mock_index = MagicMock()
+    mock_retriever = MagicMock()
+    node1 = MockNode("RAG stands for Retrieval-Augmented Generation.", 0.85, {"file_name": "sample.txt"})
+    mock_retriever.retrieve.return_value = [node1]
+    mock_index.as_retriever.return_value = mock_retriever
+    mock_index_cls.from_vector_store.return_value = mock_index
+
+    mock_synthesizer = MagicMock()
+    mock_response = MagicMock()
+    mock_response.response_gen = iter(["Retrieval ", "Augmented ", "Generation"])
+    mock_synthesizer.synthesize.return_value = mock_response
+    mock_synth_cls.return_value = mock_synthesizer
+
+    history = [
+        {"role": "user", "content": "Tell me about RAG"},
+        {"role": "assistant", "content": "RAG enhances LLMs with external data."}
+    ]
+
+    res = answer(
+        question="Summarize its benefits",
+        chat_history=history,
+        streaming=True,
+        top_k=5,
+        hybrid_search=True
+    )
+
+    assert res["has_answer"] is True
+    assert "answer_stream" in res
+    stream_output = "".join(list(res["answer_stream"]))
+    assert stream_output == "Retrieval Augmented Generation"
+
