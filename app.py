@@ -277,6 +277,81 @@ try:
 except ValueError as e:
     config_error = str(e)
 
+def get_indexing_loader_html(title: str, subtitle: str, is_light: bool) -> str:
+    """Returns HTML for an animated scanning loader card rendered in the main right content area during ingestion."""
+    card_bg = "#ffffff" if is_light else "#161922"
+    border_color = "#cbd5e1" if is_light else "#334155"
+    title_color = "#0f172a" if is_light else "#f8fafc"
+    subtitle_color = "#475569" if is_light else "#94a3b8"
+    track_bg = "#e2e8f0" if is_light else "#272d3d"
+
+    return f"""
+    <style>
+        @keyframes pulse-brain {{
+            0% {{ transform: scale(1); filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.4)); }}
+            50% {{ transform: scale(1.15); filter: drop-shadow(0 0 22px rgba(124, 58, 237, 0.85)); }}
+            100% {{ transform: scale(1); filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.4)); }}
+        }}
+        @keyframes progress-slide {{
+            0% {{ width: 5%; }}
+            50% {{ width: 75%; }}
+            100% {{ width: 98%; }}
+        }}
+        .loader-card {{
+            background-color: {card_bg};
+            border: 1px solid {border_color};
+            border-radius: 16px;
+            padding: 36px 24px;
+            text-align: center;
+            margin: 24px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }}
+        .loader-icon {{
+            font-size: 3.8rem;
+            animation: pulse-brain 1.5s infinite ease-in-out;
+            display: inline-block;
+            margin-bottom: 12px;
+        }}
+        .loader-title {{
+            font-weight: 700;
+            font-size: 1.35rem;
+            color: {title_color};
+            margin-bottom: 6px;
+        }}
+        .loader-subtitle {{
+            color: {subtitle_color};
+            font-size: 0.95rem;
+            margin-bottom: 24px;
+        }}
+        .progress-track {{
+            width: 100%;
+            height: 8px;
+            background-color: {track_bg};
+            border-radius: 10px;
+            overflow: hidden;
+        }}
+        .progress-fill {{
+            height: 100%;
+            background: linear-gradient(90deg, #4f46e5 0%, #7c3aed 50%, #38bdf8 100%);
+            animation: progress-slide 2.5s infinite ease-in-out;
+            border-radius: 10px;
+        }}
+    </style>
+    <div class="loader-card">
+        <div class="loader-icon">🧠</div>
+        <div class="loader-title">{title}</div>
+        <div class="loader-subtitle">{subtitle}</div>
+        <div class="progress-track">
+            <div class="progress-fill"></div>
+        </div>
+    </div>
+    """
+
+
+# Main area loader placeholder for displaying active indexing animation
+main_loader_placeholder = st.empty()
+
+
 # Sidebar UI
 with st.sidebar:
     st.markdown("<h1 style='margin: 0; font-size: 4rem; line-height: 1;'>🧠</h1>", unsafe_allow_html=True)
@@ -319,13 +394,22 @@ with st.sidebar:
                         with open(file_path, "wb") as f:
                             f.write(uploaded_file.getbuffer())
                     
-                    with st.spinner("Processing & embedding chunks..."):
-                        num_chunks, num_docs = ingest_source(str(TEMP_DIR))
-                        if num_chunks == 0:
-                            st.session_state["action_status"] = ("info", "Document content is already indexed in the vector store.", "ℹ️")
-                        else:
-                            st.session_state["action_status"] = ("success", f"Successfully indexed {num_chunks} chunks from {num_docs} documents.", "✅")
-                        st.rerun()
+                    # Display animated scanner loader in main content area
+                    main_loader_placeholder.markdown(
+                        get_indexing_loader_html(
+                            "Indexing Reference Documents...",
+                            "Parsing files, generating text chunks, and embedding vectors into ChromaDB",
+                            is_light_theme
+                        ),
+                        unsafe_allow_html=True
+                    )
+                    
+                    num_chunks, num_docs = ingest_source(str(TEMP_DIR))
+                    if num_chunks == 0:
+                        st.session_state["action_status"] = ("info", "Document content is already indexed in the vector store.", "ℹ️")
+                    else:
+                        st.session_state["action_status"] = ("success", f"Successfully indexed {num_chunks} chunks from {num_docs} documents.", "✅")
+                    st.rerun()
                 except Exception as e:
                     st.session_state["action_status"] = ("error", f"Error during ingestion: {e}", "⚠️")
                     st.rerun()
@@ -348,16 +432,26 @@ with st.sidebar:
                 st.error("Please enter a valid URL starting with http:// or https://")
             else:
                 try:
-                    with st.spinner("Scraping and indexing website..."):
-                        num_chunks, num_docs = ingest_source(web_url)
-                        if num_chunks == 0:
-                            st.session_state["action_status"] = ("info", "Website content is already indexed.", "ℹ️")
-                        else:
-                            st.session_state["action_status"] = ("success", f"Successfully indexed {num_chunks} chunks from 1 web page.", "✅")
-                        st.rerun()
+                    # Display animated scanner loader in main content area
+                    main_loader_placeholder.markdown(
+                        get_indexing_loader_html(
+                            "Scraping & Indexing Website...",
+                            "Fetching web page content, parsing HTML, and extracting vector embeddings",
+                            is_light_theme
+                        ),
+                        unsafe_allow_html=True
+                    )
+                    
+                    num_chunks, num_docs = ingest_source(web_url)
+                    if num_chunks == 0:
+                        st.session_state["action_status"] = ("info", "Website content is already indexed.", "ℹ️")
+                    else:
+                        st.session_state["action_status"] = ("success", f"Successfully indexed {num_chunks} chunks from 1 web page.", "✅")
+                    st.rerun()
                 except Exception as e:
                     st.session_state["action_status"] = ("error", f"Error during website ingestion: {e}", "⚠️")
                     st.rerun()
+
 
     with tab3:
         indexed_docs = get_indexed_documents()
@@ -424,6 +518,10 @@ with st.sidebar:
 # Main Area UI
 st.markdown('<div class="app-header">DocMind</div>', unsafe_allow_html=True)
 st.markdown('<div class="app-tagline">Ask anything about your documents or website URLs — get answers with citations.</div>', unsafe_allow_html=True)
+
+# Main area loader placeholder for displaying active indexing animation
+main_loader_placeholder = st.empty()
+
 
 # Chat Session State
 if "messages" not in st.session_state:
