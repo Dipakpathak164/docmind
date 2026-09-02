@@ -112,6 +112,12 @@ with st.sidebar:
         st.error(config_error)
         st.stop()
 
+    # Display single clean floating toast notification across reruns
+    if "action_status" in st.session_state:
+        _, status_msg, status_icon = st.session_state.pop("action_status")
+        st.toast(status_msg, icon=status_icon)
+
+        
     st.subheader("📚 Knowledge Base")
     tab1, tab2, tab3 = st.tabs(["📁 Upload", "🌐 Website", "🗂️ Manage"])
     
@@ -142,11 +148,13 @@ with st.sidebar:
                     with st.spinner("Processing & embedding chunks..."):
                         num_chunks, num_docs = ingest_source(str(TEMP_DIR))
                         if num_chunks == 0:
-                            st.toast("Document content is already indexed in the vector store.", icon="ℹ️")
+                            st.session_state["action_status"] = ("info", "Document content is already indexed in the vector store.", "ℹ️")
                         else:
-                            st.toast(f"Successfully indexed {num_chunks} chunks from {num_docs} documents.", icon="✅")
+                            st.session_state["action_status"] = ("success", f"Successfully indexed {num_chunks} chunks from {num_docs} documents.", "✅")
+                        st.rerun()
                 except Exception as e:
-                    st.error(f"Error during ingestion: {e}")
+                    st.session_state["action_status"] = ("error", f"Error during ingestion: {e}", "⚠️")
+                    st.rerun()
                 finally:
                     if TEMP_DIR.exists():
                         shutil.rmtree(TEMP_DIR)
@@ -169,12 +177,13 @@ with st.sidebar:
                     with st.spinner("Scraping and indexing website..."):
                         num_chunks, num_docs = ingest_source(web_url)
                         if num_chunks == 0:
-                            st.toast("Website content is already indexed.", icon="ℹ️")
+                            st.session_state["action_status"] = ("info", "Website content is already indexed.", "ℹ️")
                         else:
-                            st.toast(f"Successfully indexed {num_chunks} chunks from 1 web page.", icon="✅")
+                            st.session_state["action_status"] = ("success", f"Successfully indexed {num_chunks} chunks from 1 web page.", "✅")
+                        st.rerun()
                 except Exception as e:
-                    st.error(f"Error during website ingestion: {e}")
-
+                    st.session_state["action_status"] = ("error", f"Error during website ingestion: {e}", "⚠️")
+                    st.rerun()
 
     with tab3:
         indexed_docs = get_indexed_documents()
@@ -189,18 +198,25 @@ with st.sidebar:
                     st.write(f"**Indexed At**: `{doc['indexed_at']}`")
                     if st.button(f"🗑️ Delete Document", key=f"del_{doc['source']}"):
                         deleted_count = delete_document(doc['source'])
-                        st.toast(f"Deleted {deleted_count} chunks from '{doc['file_name']}'.", icon="🗑️")
+                        if deleted_count > 0:
+                            st.session_state["action_status"] = ("success", f"Successfully deleted '{doc['file_name']}' ({deleted_count} chunks removed).", "🗑️")
+                        else:
+                            st.session_state["action_status"] = ("error", f"Could not find or delete chunks for '{doc['file_name']}'.", "⚠️")
                         st.rerun()
 
             st.markdown("---")
             confirm_clear = st.checkbox("Confirm clear knowledge base", key="confirm_clear_cb")
             if st.button("🔴 Clear All Data", key="clear_all_btn"):
                 if confirm_clear:
-                    clear_knowledge_base()
-                    st.toast("Knowledge base reset successfully.", icon="🧹")
+                    success = clear_knowledge_base()
+                    if success:
+                        st.session_state["action_status"] = ("success", "Knowledge base has been completely reset.", "🧹")
+                    else:
+                        st.session_state["action_status"] = ("error", "Failed to reset knowledge base.", "⚠️")
                     st.rerun()
                 else:
                     st.warning("Please check the confirmation box first.")
+
 
                     
     st.markdown("---")
