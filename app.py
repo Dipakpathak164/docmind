@@ -241,16 +241,84 @@ if st.session_state.messages:
             st.session_state.messages = []
             st.rerun()
 
+import streamlit.components.v1 as components
+
+def render_copy_button(text: str, key_suffix: str = ""):
+    """Renders an icon-only Copy to Clipboard button (standard SVG double-rectangle icon) for chat messages."""
+    import json
+    safe_text = json.dumps(text)
+    btn_id = f"btn_{abs(hash(text))}_{key_suffix}"
+    svg_icon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>'
+    check_icon = '<span style="color: #10b981; font-weight: bold; font-size: 13px;">✓</span>'
+
+    html_code = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body {{
+          margin: 0;
+          padding: 0;
+          background: transparent;
+          display: flex;
+          justify-content: flex-end;
+          align-items: center;
+        }}
+        .copy-btn {{
+          background-color: #1a1e29;
+          border: 1px solid #334155;
+          color: #94a3b8;
+          border-radius: 6px;
+          width: 28px;
+          height: 28px;
+          padding: 0;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }}
+        .copy-btn:hover {{
+          background-color: #272d3d;
+          color: #f1f5f9;
+          border-color: #475569;
+        }}
+      </style>
+    </head>
+    <body>
+      <button id="{btn_id}" class="copy-btn" title="Copy to clipboard" onclick="copyText()">{svg_icon}</button>
+      <script>
+        function copyText() {{
+          const val = {safe_text};
+          navigator.clipboard.writeText(val);
+          const btn = document.getElementById("{btn_id}");
+          btn.innerHTML = '{check_icon}';
+          btn.style.borderColor = "#10b981";
+          setTimeout(function() {{
+            btn.innerHTML = '{svg_icon}';
+            btn.style.borderColor = "#334155";
+          }}, 2000);
+        }}
+      </script>
+    </body>
+    </html>
+    """
+    components.html(html_code, height=32)
+
+
 # Display conversation history
-for message in st.session_state.messages:
+for idx, message in enumerate(st.session_state.messages):
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
+        if message.get("content"):
+            render_copy_button(message["content"], f"hist_{idx}")
+            
         if message["role"] == "assistant" and "sources" in message and message["sources"]:
             with st.expander("🔍 Citations & Sources"):
-                for idx, src in enumerate(message["sources"]):
+                for s_idx, src in enumerate(message["sources"]):
                     st.markdown(f"""
                     <div class="source-block">
-                        <span class="source-header">[{idx + 1}] Source: {src['source']}</span> | 
+                        <span class="source-header">[{s_idx + 1}] Source: {src['source']}</span> | 
                         <span class="source-score">Match Score: {src['score']:.4f}</span>
                         <p style="color: #94a3b8; font-size: 0.9rem; margin-top: 6px; font-style: italic;">
                             "...{src['text']}..."
@@ -265,6 +333,7 @@ if prompt := st.chat_input("Ask a question about your documents or website URLs.
     # Render user message immediately
     with st.chat_message("user"):
         st.markdown(prompt)
+        render_copy_button(prompt, "user_live")
     
     # Generate response
     with st.chat_message("assistant"):
@@ -283,12 +352,15 @@ if prompt := st.chat_input("Ask a question about your documents or website URLs.
             answer_text = res.get("answer", "")
             st.markdown(answer_text)
             
+        if answer_text:
+            render_copy_button(answer_text, "asst_live")
+
         if res["has_answer"] and res["sources"]:
             with st.expander("🔍 Citations & Sources"):
-                for idx, src in enumerate(res["sources"]):
+                for s_idx, src in enumerate(res["sources"]):
                     st.markdown(f"""
                     <div class="source-block">
-                        <span class="source-header">[{idx + 1}] Source: {src['source']}</span> | 
+                        <span class="source-header">[{s_idx + 1}] Source: {src['source']}</span> | 
                         <span class="source-score">Match Score: {src['score']:.4f}</span>
                         <p style="color: #94a3b8; font-size: 0.9rem; margin-top: 6px; font-style: italic;">
                             "...{src['text']}..."
@@ -297,6 +369,7 @@ if prompt := st.chat_input("Ask a question about your documents or website URLs.
                     """, unsafe_allow_html=True)
         elif not res["has_answer"]:
             st.warning("No relevant information found in the documents.")
+
             
         st.session_state.messages.append({"role": "user", "content": prompt})
         st.session_state.messages.append({
@@ -305,4 +378,3 @@ if prompt := st.chat_input("Ask a question about your documents or website URLs.
             "sources": res.get("sources", []),
             "has_answer": res.get("has_answer", True)
         })
-
