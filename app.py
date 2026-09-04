@@ -90,6 +90,38 @@ def apply_theme_css(is_light: bool):
             color: {text_color} !important;
         }}
 
+        /* Sidebar Close/Collapse Icon styling for high contrast in light & dark mode */
+        section[data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"] button,
+        section[data-testid="stSidebar"] button[aria-label="Close sidebar"],
+        section[data-testid="stSidebar"] button[aria-label="Collapse sidebar"],
+        section[data-testid="stSidebar"] button[kind="header"] {{
+            color: {text_color} !important;
+            background-color: transparent !important;
+            border: 1px solid {sidebar_border} !important;
+            border-radius: 8px !important;
+            transition: all 0.2s ease !important;
+        }}
+
+        section[data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"] button:hover,
+        section[data-testid="stSidebar"] button[aria-label="Close sidebar"]:hover,
+        section[data-testid="stSidebar"] button[aria-label="Collapse sidebar"]:hover,
+        section[data-testid="stSidebar"] button[kind="header"]:hover {{
+            background-color: {card_bg} !important;
+            border-color: #4f46e5 !important;
+        }}
+
+        section[data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"] button svg,
+        section[data-testid="stSidebar"] button[aria-label="Close sidebar"] svg,
+        section[data-testid="stSidebar"] button[aria-label="Collapse sidebar"] svg,
+        section[data-testid="stSidebar"] button[kind="header"] svg,
+        section[data-testid="stSidebar"] button svg {{
+            fill: {text_color} !important;
+            color: {text_color} !important;
+            stroke: {text_color} !important;
+            width: 20px !important;
+            height: 20px !important;
+        }}
+
         /* Inline Backtick Code Tags */
         code {{
             background-color: {code_bg} !important;
@@ -250,15 +282,90 @@ def apply_theme_css(is_light: bool):
             margin-bottom: 10px;
         }}
         
-        div[data-testid="stChatMessage"] p,
-        div[data-testid="stChatMessage"] span,
-        div[data-testid="stChatMessage"] div {{
-            color: {text_color} !important;
+        /* Mobile Chat Input Field Styling */
+        @media (max-width: 768px) {{
+            div[data-testid="stChatInput"] {{
+                min-height: 64px !important;
+                padding-bottom: 8px !important;
+            }}
+            
+            div[data-testid="stChatInput"] textarea,
+            div[data-testid="stChatInput"] div[data-baseweb="textarea"],
+            div[data-testid="stChatInput"] div[data-baseweb="base-input"] {{
+                min-height: 58px !important;
+                font-size: 0.95rem !important;
+                line-height: 1.4 !important;
+                padding: 10px 14px !important;
+                border-radius: 12px !important;
+            }}
+            
+            div[data-testid="stChatInput"] textarea::placeholder,
+            div[data-testid="stChatInput"] input::placeholder {{
+                font-size: 0.88rem !important;
+                line-height: 1.35 !important;
+                white-space: normal !important;
+                opacity: 0.85 !important;
+            }}
         }}
 
+        /* Enhanced Collapsed Sidebar Toggle Pill UI/UX */
         #MainMenu {{visibility: hidden;}}
         footer {{visibility: hidden;}}
         header {{visibility: hidden;}}
+
+        div[data-testid="stSidebarCollapsedControl"],
+        div[data-testid="stSidebarOpen"],
+        [data-testid="collapsedControl"] {{
+            visibility: visible !important;
+            top: 14px !important;
+            left: 14px !important;
+            z-index: 999999 !important;
+        }}
+
+        div[data-testid="stSidebarCollapsedControl"] button,
+        div[data-testid="stSidebarOpen"] button,
+        [data-testid="collapsedControl"] button {{
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+            color: #ffffff !important;
+            border: 1px solid rgba(255, 255, 255, 0.25) !important;
+            border-radius: 24px !important;
+            padding: 6px 16px !important;
+            height: auto !important;
+            min-height: 40px !important;
+            box-shadow: 0 4px 16px rgba(79, 70, 229, 0.4) !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 6px !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            cursor: pointer !important;
+        }}
+
+        div[data-testid="stSidebarCollapsedControl"] button:hover,
+        div[data-testid="stSidebarOpen"] button:hover,
+        [data-testid="collapsedControl"] button:hover {{
+            transform: translateY(-2px) scale(1.05) !important;
+            box-shadow: 0 8px 22px rgba(124, 58, 237, 0.6) !important;
+            background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%) !important;
+        }}
+
+        div[data-testid="stSidebarCollapsedControl"] button::after,
+        div[data-testid="stSidebarOpen"] button::after,
+        [data-testid="collapsedControl"] button::after {{
+            content: "📚 Knowledge Base & Settings" !important;
+            font-weight: 600 !important;
+            font-size: 0.9rem !important;
+            color: #ffffff !important;
+            white-space: nowrap !important;
+            margin-left: 0 !important;
+            letter-spacing: 0.01em !important;
+        }}
+
+        div[data-testid="stSidebarCollapsedControl"] button svg,
+        div[data-testid="stSidebarOpen"] button svg,
+        [data-testid="collapsedControl"] button svg {{
+            display: none !important;
+        }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -357,6 +464,58 @@ def get_indexing_loader_html(title: str, subtitle: str, is_light: bool) -> str:
     """
 
 
+def close_sidebar_js():
+    """Injects JS snippet to collapse the Streamlit sidebar ONLY on mobile/small devices during long-running tasks."""
+    components.html(
+        """
+        <script>
+            function tryCloseSidebar() {
+                try {
+                    const isMobile = (window.parent.innerWidth || window.innerWidth) <= 768;
+                    if (!isMobile) {
+                        return true; // Keep sidebar expanded on laptop / large devices
+                    }
+
+                    const sidebar = window.parent.document.querySelector('section[data-testid="stSidebar"]');
+                    if (sidebar) {
+                        const isExpanded = sidebar.getAttribute('aria-expanded') === 'true' || 
+                                           sidebar.offsetWidth > 100;
+                        if (isExpanded) {
+                            const selectors = [
+                                '[data-testid="stSidebarCollapseButton"] button',
+                                '[data-testid="stSidebarCollapseButton"]',
+                                'button[aria-label="Close sidebar"]',
+                                'button[aria-label="Collapse sidebar"]',
+                                'button[aria-label="Close Sidebar"]',
+                                'button[aria-label="Collapse Sidebar"]',
+                                'section[data-testid="stSidebar"] button[kind="header"]',
+                                'section[data-testid="stSidebar"] button'
+                            ];
+                            for (const sel of selectors) {
+                                const btn = window.parent.document.querySelector(sel);
+                                if (btn) {
+                                    btn.click();
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.log("Could not auto-close sidebar:", e);
+                }
+                return false;
+            }
+            
+            if (!tryCloseSidebar()) {
+                setTimeout(tryCloseSidebar, 100);
+                setTimeout(tryCloseSidebar, 300);
+            }
+        </script>
+        """,
+        height=0,
+        width=0
+    )
+
 
 # Main area loader placeholder for displaying active indexing animation
 main_loader_placeholder = st.empty()
@@ -404,6 +563,9 @@ with st.sidebar:
                         with open(file_path, "wb") as f:
                             f.write(uploaded_file.getbuffer())
                     
+                    # Auto-close sidebar on mobile view so user sees main loader
+                    close_sidebar_js()
+
                     # Display animated scanner loader in main content area
                     main_loader_placeholder.markdown(
                         get_indexing_loader_html(
@@ -442,6 +604,9 @@ with st.sidebar:
                 st.error("Please enter a valid URL starting with http:// or https://")
             else:
                 try:
+                    # Auto-close sidebar on mobile view so user sees main loader
+                    close_sidebar_js()
+
                     # Display animated scanner loader in main content area
                     main_loader_placeholder.markdown(
                         get_indexing_loader_html(
