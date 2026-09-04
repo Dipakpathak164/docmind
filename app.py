@@ -26,8 +26,8 @@ def apply_theme_css(is_light: bool):
         card_border = "#cbd5e1"
         tagline_color = "#475569"
         header_gradient = "linear-gradient(135deg, #4338ca 0%, #6d28d9 100%)"
-        code_bg = "#e2e8f0"
-        code_color = "#0284c7"
+        code_bg = "#f1f5f9"
+        code_color = "#0369a1"
         code_border = "#cbd5e1"
         input_bg = "#ffffff"
         input_border = "#cbd5e1"
@@ -67,6 +67,15 @@ def apply_theme_css(is_light: bool):
         .stApp {{
             background-color: {bg_color} !important;
             color: {text_color} !important;
+        }}
+
+        /* General main content area text contrast */
+        .stApp p, 
+        .stApp span, 
+        .stApp label,
+        .stApp li,
+        .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6 {{
+            color: {text_color};
         }}
 
         /* Bottom Chat Container Bar */
@@ -122,8 +131,8 @@ def apply_theme_css(is_light: bool):
             height: 20px !important;
         }}
 
-        /* Inline Backtick Code Tags */
-        code {{
+        /* Inline Backtick Code & Fenced Code Tags */
+        code, pre code {{
             background-color: {code_bg} !important;
             color: {code_color} !important;
             border: 1px solid {code_border} !important;
@@ -186,13 +195,6 @@ def apply_theme_css(is_light: bool):
             color: {text_color} !important;
         }}
 
-
-
-
-
-
-
-
         /* Tabs Styling */
         button[data-baseweb="tab"] {{
             color: {subtext_color} !important;
@@ -217,7 +219,11 @@ def apply_theme_css(is_light: bool):
             border-radius: 8px !important;
         }}
 
-        div[data-testid="stExpander"] summary span {{
+        div[data-testid="stExpander"] summary span,
+        div[data-testid="stExpander"] p,
+        div[data-testid="stExpander"] div,
+        div[data-testid="stExpander"] span,
+        div[data-testid="stExpander"] li {{
             color: {text_color} !important;
         }}
 
@@ -244,6 +250,7 @@ def apply_theme_css(is_light: bool):
             border-radius: 8px;
             padding: 12px;
             margin-top: 8px;
+            color: {text_color} !important;
         }}
         
         .source-header {{
@@ -254,6 +261,13 @@ def apply_theme_css(is_light: bool):
         .source-score {{
             font-size: 0.85rem;
             color: #10b981 !important;
+        }}
+
+        .source-snippet {{
+            color: {subtext_color} !important;
+            font-size: 0.9rem !important;
+            margin-top: 6px !important;
+            font-style: italic !important;
         }}
         
         /* Styling button */
@@ -273,15 +287,37 @@ def apply_theme_css(is_light: bool):
             box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4) !important;
         }}
         
-        /* Chat Messages */
+        /* Main Area Chat Messages & Markdown Content Styling */
         div[data-testid="stChatMessage"] {{
             background-color: {card_bg} !important;
             border: 1px solid {card_border} !important;
             border-radius: 10px;
             padding: 12px;
             margin-bottom: 10px;
+            color: {text_color} !important;
         }}
-        
+
+        div[data-testid="stChatMessage"] [data-testid="stChatMessageContent"],
+        div[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"],
+        div[data-testid="stChatMessage"] p,
+        div[data-testid="stChatMessage"] span,
+        div[data-testid="stChatMessage"] div,
+        div[data-testid="stChatMessage"] li,
+        div[data-testid="stChatMessage"] ul,
+        div[data-testid="stChatMessage"] ol,
+        div[data-testid="stChatMessage"] h1,
+        div[data-testid="stChatMessage"] h2,
+        div[data-testid="stChatMessage"] h3,
+        div[data-testid="stChatMessage"] h4,
+        div[data-testid="stChatMessage"] h5,
+        div[data-testid="stChatMessage"] h6,
+        div[data-testid="stChatMessage"] strong,
+        div[data-testid="stChatMessage"] em,
+        div[data-testid="stChatMessage"] td,
+        div[data-testid="stChatMessage"] th {{
+            color: {text_color} !important;
+        }}
+
         /* Mobile Chat Input Field Styling */
         @media (max-width: 768px) {{
             div[data-testid="stChatInput"] {{
@@ -366,7 +402,6 @@ def apply_theme_css(is_light: bool):
         [data-testid="collapsedControl"] button svg {{
             display: none !important;
         }}
-    </style>
     """, unsafe_allow_html=True)
 
 
@@ -790,7 +825,7 @@ for idx, message in enumerate(st.session_state.messages):
                     <div class="source-block">
                         <span class="source-header">[{s_idx + 1}] Source: {src['source']}</span> | 
                         <span class="source-score">Match Score: {src['score']:.4f}</span>
-                        <p style="color: #94a3b8; font-size: 0.9rem; margin-top: 6px; font-style: italic;">
+                        <p class="source-snippet">
                             "...{src['text']}..."
                         </p>
                     </div>
@@ -833,7 +868,7 @@ if prompt := st.chat_input("Ask a question about your documents or website URLs.
                     <div class="source-block">
                         <span class="source-header">[{s_idx + 1}] Source: {src['source']}</span> | 
                         <span class="source-score">Match Score: {src['score']:.4f}</span>
-                        <p style="color: #94a3b8; font-size: 0.9rem; margin-top: 6px; font-style: italic;">
+                        <p class="source-snippet">
                             "...{src['text']}..."
                         </p>
                     </div>
